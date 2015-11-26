@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.8)
+project(CommUtil)
+message(STATUS "Binary dir: " ${PROJECT_BINARY_DIR})
+message(STATUS "Source dir: " ${PROJECT_SOURCE_DIR})
+add_subdirectory(Source)
+
