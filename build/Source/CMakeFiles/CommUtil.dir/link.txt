@@ -1,0 +1,2 @@
+/usr/bin/ar cr ../../Lib/libCommUtil.a  CMakeFiles/CommUtil.dir/Log.cpp.o
+/usr/bin/ranlib ../../Lib/libCommUtil.a
