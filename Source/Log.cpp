@@ -126,7 +126,7 @@ CLog::SetKeepDays(int iKeepDays)
 void
 CLog::SetFileSize(long lFileSize)
 {
-	m_lFileSize = lFileSize>4*1024 ? lFileSize:4*1024*1024;
+	m_lFileSize = lFileSize>4096 ? lFileSize:(4*1024*1024);
 }
 
 CLog::NODE*
