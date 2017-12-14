@@ -3,6 +3,7 @@ message(STATUS "Include: " ${PROJECT_SOURCE_DIR}/Include)
 
 set(SRC_LST 
 	Log.cpp
+	Thread.cpp
 	PacketManager.cpp
 	SocketHandle.cpp
 	SocketClient.cpp
