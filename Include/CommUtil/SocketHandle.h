@@ -7,27 +7,27 @@
 class IHandle
 {
 public:
-  IHandle();
-  virtual ~IHandle();
+	IHandle();
+	virtual ~IHandle();
   
-  void    Set(int iFd);
+	void    Set(int iFd);
   
-  int     Add(int iEpoll);
-  void    Del();
+	int     Add(int iEpoll);
+	void    Del();
   
-  int&    GetFD() { return m_iFd; }
-  struct epoll_event* GetEE() { return &m_ee; }
+	int&    GetFD() { return m_iFd; }
+	struct epoll_event* GetEE() { return &m_ee; }
   
-  void    Close();
+	void    OnClose();
   
 public:
-  virtual int   OnRecv()  { return -1; }
-  virtual int   OnSend()  { return -1; }
+	virtual int   OnRecv()  { return -1; }
+	virtual int   OnSend()  { return -1; }
   
 protected:
-  struct epoll_event  m_ee;
-  int       m_iFd;
-  int       m_iEpoll;
+	struct epoll_event  m_ee;
+	int       m_iFd;
+	int       m_iEpoll;
 };
 
 #endif  // SOCKETHANDLE_H_
