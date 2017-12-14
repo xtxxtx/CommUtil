@@ -58,3 +58,23 @@ IHandle::Add(int iEpoll)
 	return 0;
 }
 
+void
+IHandle::Del()
+{
+	if (m_iEpoll > 0) {
+		epoll_ctl(m_iEpoll, EPOLL_CTL_DEL, m_iFd, &m_ee);	
+		m_iEpoll = -1;
+	}
+}
+
+void
+IHandle::OnClose()
+{
+	if (m_iFd > 0) {
+		Del();
+		
+		close(m_iFd);
+		m_iFd = -1;
+	}
+}
+
