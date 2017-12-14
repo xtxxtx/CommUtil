@@ -1,9 +1,9 @@
 // Log.h
 //
-#ifndef	LOG_H
-#define	LOG_H
+#ifndef	LOG_H_
+#define	LOG_H_
 
-#include <list>
+#include <deque>
 #include "CommUtil/Mutex.h"
 
 
@@ -29,24 +29,36 @@ public:
 	void			SetFileSize(long lFileSize);
 
 	void			Write(int iLevel, const char* pszFormat, ...);
+	void			Write(const char* pszText, int iLength, int iLevel);
 
 private:
 	CLog();
 	CLog(const CLog&);
 	CLog& operator=(const CLog&);
 
-	typedef struct tagNode
+	class CNode
 	{
-		char	pBuf[BUF_LEN];
-		int		iLen;
-	} NODE;
-	typedef std::list<NODE*> LST_NODE;
+	public:
+		CNode(int iSize);
+		~CNode();
+		
+		void	Cleanup();
+		
+		char	m_pBuf;
+		int		m_iLen;
+		int		m_iSize;
+	private:
+		CNode();
+		CNode(const CNode&);
+		CNode& operator=(const CNode&);
+	} ;
+	typedef std::deque<CNode *> LST_NODE;
 
-	NODE*				GetIdle();
-	void				SetIdle(NODE* pNode);
+	CNode*				GetIdle();
+	void				SetIdle(CNode* pNode);
 
-	NODE*				GetWork();
-	void				SetWork(NODE* pNode);
+	CNode*				GetWork();
+	void				SetWork(CNode* pNode);
 
 	void				Close();
 
@@ -77,5 +89,5 @@ private:
 	LST_NODE			m_lstIdle;	
 };
 
-#endif	// LOG_H
+#endif	// LOG_H_
 
