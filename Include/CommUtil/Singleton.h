@@ -27,6 +27,7 @@
 			m_pThis->Close();\
 			delete m_pThis;\
 			m_pThis = 0;\
+		}\
 	}
 	
 #endif	// SINGLETON_H_
