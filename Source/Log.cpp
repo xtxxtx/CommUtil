@@ -96,7 +96,7 @@ CLog::Close()
 	}
 
 	m_mtxIdle.Lock();
-	NODE* pNode = NULL;
+	CNode* pNode = NULL;
 	while (!m_lstIdle.empty()) {
 		pNode = m_lstIdle.front();
 		m_lstIdle.pop_front();
@@ -129,13 +129,17 @@ CLog::SetFileSize(long lFileSize)
 	m_lFileSize = lFileSize>4096 ? lFileSize:(4*1024*1024);
 }
 
-CLog::NODE*
-CLog::GetIdle()
+CLog::CNode*
+CLog::GetIdle(int iSize)
 {
-	NODE* pNode = NULL;
+	if (iSize > BUF_LEN) {
+		return new CNode(iSize);
+	}
+
+	CNode* pNode = NULL;
 	m_mtxIdle.Lock();
 	if (m_lstIdle.empty()) {
-		pNode = new NODE;
+		pNode = new CNode(BUF_LEN);
 	} else {
 		pNode = m_lstIdle.front();
 		m_lstIdle.pop_front();
@@ -143,15 +147,15 @@ CLog::GetIdle()
 	m_mtxIdle.Unlock();
 
 	if (pNode != NULL) {
-		memset(pNode->pBuf, 0, BUF_LEN);
-		pNode->iLen = 0;
+		memset(pNode->m_pBuf, 0, BUF_LEN);
+		pNode->m_iLen = 0;
 	}
 
 	return pNode;
 }
 
 void
-CLog::SetIdle(NODE* pNode)
+CLog::SetIdle(CNode* pNode)
 {
 	if (pNode == NULL) {
 		return;
@@ -166,10 +170,10 @@ CLog::SetIdle(NODE* pNode)
 	m_mtxIdle.Unlock();
 }
 
-CLog::NODE*
+CLog::CNode*
 CLog::GetWork()
 {
-	NODE* pNode = NULL;
+	CNode* pNode = NULL;
 
 	m_mtxWork.Lock();
 	if (!m_lstWork.empty()) {
@@ -182,7 +186,7 @@ CLog::GetWork()
 }
 
 void
-CLog::SetWork(NODE* pNode)
+CLog::SetWork(CNode* pNode)
 {
 	if (pNode == NULL) {
 		return;
@@ -201,7 +205,7 @@ CLog::Write(int iLevel, const char* pszFormat, ...)
 		return;
 	}
 
-	NODE* pNode = GetIdle();
+	CNode* pNode = GetIdle(BUF_LEN);
 	if (pNode == NULL) {
 		return;
 	}
@@ -212,13 +216,46 @@ CLog::Write(int iLevel, const char* pszFormat, ...)
 	struct tm tmCurr = {0};
 	localtime_r(&(tv.tv_sec), &tmCurr);
 
-	pNode->iLen = sprintf(pNode->pBuf, "%02d-%02d %02d:%02d:%02d.%03d %s ",
+	int iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03d %s ",
 		tmCurr.tm_mon+1, tmCurr.tm_mday, tmCurr.tm_hour, tmCurr.tm_min, tmCurr.tm_sec, tv.tv_usec/1000, LOG_TYPE[iLevel-1]);
+
+	static const int MAX_LEN = BUF_LEN-2;
 
 	va_list args;
 	va_start(args, pszFormat);
-	pNode->iLen += vsprintf(pNode->pBuf+pNode->iLen, pszFormat, args);
+	iLen += vsprintf(pNode->m_pBuf+iLen, pszFormat, args);
 	va_end(args);
+
+	if (iLen > MAX_LEN) {
+		iLen = MAX_LEN;
+	}
+
+	pNode->m_pBuf[iLen++]	= '\n';
+	pNode->m_pBuf[iLen++]	= '\0'; 
+	pNode->m_iLen			= iLen;
+
+	SetWork(pNode);
+}
+
+void
+CLog::Write(const char* pszText, int iLength, int iLevel)
+{
+	if (m_iLevel<LOG_ERROR || m_iLevel<iLevel || !m_bRun || pszText==NULL || iLength<1) {
+		return;
+	}
+
+	CNode* pNode = GetIdle(iLength+32);
+	if (pNode == NULL) {
+		return;
+	}
+
+	struct timeval tv = {0};
+	gettimeofday(&tv, NULL);
+	struct tm dt	= {0};
+	localtime_r(&(tv.tv_sec), &dt);
+
+	pNode->m_iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03ld %s %s\n",
+		dt.tm_mon+1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec, tv.tv_usec/1000, LOG_TYPE[iLevel-1], pszText);
 
 	SetWork(pNode);
 }
@@ -238,7 +275,7 @@ void
 CLog::Execute()
 {
 	FILE* pFile		= NULL;
-	NODE* pNode		= NULL;
+	CNode* pNode	= NULL;
 
 	long lSize		= 0;
 	int iIndex		= 0;
@@ -254,7 +291,7 @@ CLog::Execute()
 			continue;
 		}
 
-		if (pNode->pBuf[0]==0 || pNode->iLen<1) {
+		if (pNode->m_pBuf[0]==0 || pNode->m_iLen<1) {
 			SetIdle(pNode);
 			continue;
 		}
@@ -292,8 +329,8 @@ CLog::Execute()
 			}
 		}
 
-		if (fwrite(pNode->pBuf, 1, pNode->iLen, pFile) > 0) {
-			lSize += pNode->iLen;
+		if (fwrite(pNode->m_pBuf, 1, pNode->m_iLen, pFile) > 0) {
+			lSize += pNode->m_iLen;
 			fflush(pFile);
 		} else {
 			fclose(pFile);

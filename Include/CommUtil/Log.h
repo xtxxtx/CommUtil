@@ -44,7 +44,7 @@ private:
 		
 		void	Cleanup();
 		
-		char	m_pBuf;
+		char*	m_pBuf;
 		int		m_iLen;
 		int		m_iSize;
 	private:
@@ -54,7 +54,7 @@ private:
 	} ;
 	typedef std::deque<CNode *> LST_NODE;
 
-	CNode*				GetIdle();
+	CNode*				GetIdle(int iSize);
 	void				SetIdle(CNode* pNode);
 
 	CNode*				GetWork();
