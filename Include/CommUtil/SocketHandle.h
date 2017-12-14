@@ -16,7 +16,7 @@ public:
   void    Del();
   
   int&    GetFD() { return m_iFd; }
-  struct epoll_event* GetEE() { return m_ee; }
+  struct epoll_event* GetEE() { return &m_ee; }
   
   void    Close();
   
