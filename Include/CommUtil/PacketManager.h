@@ -17,6 +17,17 @@
 typedef struct tagPacket {
 	unsigned char	cBegin;
 	int				iLength;
+	unsigned int	iFuncCode;
+	unsigned int	iSessID;
+	unsigned char	cMode;
+	unsigned char	cVer;
+	unsigned int	iSerialNumber;
+	
+	int				iSize;
+	unsigned char*	pBody;
+	void*			pParent;
+	int				iHdrLen;
+	int				iOffset;
 } PACKET;
 #pragma pack()
 
