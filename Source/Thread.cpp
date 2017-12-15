@@ -52,7 +52,7 @@ IThread::Execute(void* pParam)
 	return 0;
 }
 
-void*
+void
 IThread::WaitExit()
 {
 	m_bRun = false;
