@@ -1,6 +1,7 @@
 // Log.cpp
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
@@ -12,6 +13,35 @@
 #include "CommUtil/OSTime.h"
 #include "CommUtil/Log.h"
 
+//////////////////////////////////////////////////////////////////////////
+CLog::CNode::CNode(int iSize)
+{
+	m_iSize		= iSize;
+	m_pBuf		= (char*)malloc(m_iSize);
+	m_pBuf[0]	= 0;
+	m_iLen		= 0;
+}
+
+CLog::CNode::~CNode()
+{
+	if (m_pBuf != NULL) {
+		free(m_pBuf);
+		m_pBuf = NULL;
+	}
+
+	m_iSize	= 0;
+	m_iLen	= 0;
+}
+
+void
+CLog::CNode::Cleanup()
+{
+	memset(m_pBuf, 0, m_iSize);
+	m_iLen	= 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 CLog*
 CLog::m_pThis	= NULL;
 
@@ -290,7 +320,7 @@ CLog::Execute()
 			NS_TIME::MSleep(50);
 			continue;
 		}
-
+		
 		if (pNode->m_pBuf[0]==0 || pNode->m_iLen<1) {
 			SetIdle(pNode);
 			continue;
@@ -320,7 +350,7 @@ CLog::Execute()
 					lSize = 0;
 				}
 			} while (lSize >= m_lFileSize);
-	
+
 			pFile = fopen(szPath, "a");
 			if (pFile == NULL) {
 				SetIdle(pNode);
