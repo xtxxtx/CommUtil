@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/Include)
 message(STATUS "Include: " ${PROJECT_SOURCE_DIR}/Include)
 
+set(CMAKE_C_FLAGS "-g -Wall")
+set(CMAKE_CXX_FLAGS "-g -Wall")
+
 set(SRC_LST 
 	OSPath.cpp
 	OSTime.cpp

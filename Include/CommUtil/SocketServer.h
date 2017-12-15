@@ -10,7 +10,7 @@
 
 
 class CSocketListen;
-class CScoketClient;
+class CSocketClient;
 
 
 typedef int (*CBAccept)(void*, CSocketClient*);

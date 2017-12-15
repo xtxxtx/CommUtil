@@ -36,7 +36,7 @@ NS_PATH::MakeDirP(const char* pszPath)
   		szTemp[len++] = '/';
 	}
   
-	for (int i=1; i<len; i++) {
+	for (int i=off; i<len; i++) {
 		if (szTemp[i] == '/') {
   			szTemp[i] = 0;
   			if (access(szTemp, R_OK) != 0) {

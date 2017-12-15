@@ -105,10 +105,10 @@ CLog::Initialize(const char* pszPath, const char* pszName, int iLevel)
 
 	m_bRun	= true;
 
-	int result = 0;
+//	int result = 0;
 	
-	result = pthread_create(m_hThread+0, NULL, ThreadExecute, this);
-	result = pthread_create(m_hThread+1, NULL, ThreadCleanup, this);
+	pthread_create(m_hThread+0, NULL, ThreadExecute, this);
+	pthread_create(m_hThread+1, NULL, ThreadCleanup, this);
 
 	return 0;
 }
@@ -246,7 +246,7 @@ CLog::Write(int iLevel, const char* pszFormat, ...)
 	struct tm tmCurr = {0};
 	localtime_r(&(tv.tv_sec), &tmCurr);
 
-	int iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03d %s ",
+	int iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03ld %s ",
 		tmCurr.tm_mon+1, tmCurr.tm_mday, tmCurr.tm_hour, tmCurr.tm_min, tmCurr.tm_sec, tv.tv_usec/1000, LOG_TYPE[iLevel-1]);
 
 	static const int MAX_LEN = BUF_LEN-2;

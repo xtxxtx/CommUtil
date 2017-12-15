@@ -134,8 +134,9 @@ public:
 	int		Signal() 
 	{
 		pthread_mutex_lock(&m_mtx);
-		int nResult = pthread_cond_signal(&m_cnd); 
+		int iResult = pthread_cond_signal(&m_cnd); 
 		pthread_mutex_unlock(&m_mtx);
+		return iResult;
 	}
 
 	int		Broadcast() 
