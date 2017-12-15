@@ -1,7 +1,7 @@
 // MakeDirP.h
 
-#ifndef MAKEDIRP_H_
-#define MAKEDIRP_H_
+#ifndef OSPATH_H_
+#define OSPATH_H_
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -46,5 +46,5 @@ int MakeDirP(const char* pszPath)
 	return 0;
 }
 
-#endif  // MAKEDIRP_H_
+#endif  // OSPATH_H_
 
