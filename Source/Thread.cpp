@@ -59,7 +59,7 @@ IThread::WaitExit()
 	if (m_pThread != NULL) {
 		for (int i=0; i<m_iSize; i++) {
 			if (m_pThread[i] != 0) {
-				pThread_join(m_pThread[i], NULL);	
+				pthread_join(m_pThread[i], NULL);	
 			}
 		}
 		
