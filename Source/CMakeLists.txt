@@ -8,6 +8,7 @@ set(SRC_LST
 	Thread.cpp
 	PacketManager.cpp
 	SocketHandle.cpp
+	SocketListen.cpp
 	SocketClient.cpp
 	SocketServer.cpp)
 

@@ -127,9 +127,9 @@ CLog::Close()
 
 	m_mtxIdle.Lock();
 	CNode* pNode = NULL;
-	while (!m_lstIdle.empty()) {
-		pNode = m_lstIdle.front();
-		m_lstIdle.pop_front();
+	while (!m_deqIdle.empty()) {
+		pNode = m_deqIdle.front();
+		m_deqIdle.pop_front();
 		delete pNode;
 	}
 	m_mtxIdle.Unlock();	
@@ -168,11 +168,11 @@ CLog::GetIdle(int iSize)
 
 	CNode* pNode = NULL;
 	m_mtxIdle.Lock();
-	if (m_lstIdle.empty()) {
+	if (m_deqIdle.empty()) {
 		pNode = new CNode(BUF_LEN);
 	} else {
-		pNode = m_lstIdle.front();
-		m_lstIdle.pop_front();
+		pNode = m_deqIdle.front();
+		m_deqIdle.pop_front();
 	}
 	m_mtxIdle.Unlock();
 
@@ -192,10 +192,10 @@ CLog::SetIdle(CNode* pNode)
 	}
 
 	m_mtxIdle.Lock();
-	if (m_lstIdle.size() > 64) {
+	if (m_deqIdle.size() > 64) {
 		delete pNode;
 	} else {
-		m_lstIdle.push_back(pNode);
+		m_deqIdle.push_back(pNode);
 	}
 	m_mtxIdle.Unlock();
 }
@@ -206,9 +206,9 @@ CLog::GetWork()
 	CNode* pNode = NULL;
 
 	m_mtxWork.Lock();
-	if (!m_lstWork.empty()) {
-		pNode = m_lstWork.front();
-		m_lstWork.pop_front();
+	if (!m_deqWork.empty()) {
+		pNode = m_deqWork.front();
+		m_deqWork.pop_front();
 	}
 	m_mtxWork.Unlock();
 
@@ -223,7 +223,7 @@ CLog::SetWork(CNode* pNode)
 	}
 
 	m_mtxWork.Lock();
-	m_lstWork.push_back(pNode);
+	m_deqWork.push_back(pNode);
 	m_mtxWork.Unlock();
 }
 

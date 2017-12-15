@@ -52,7 +52,7 @@ private:
 		CNode(const CNode&);
 		CNode& operator=(const CNode&);
 	} ;
-	typedef std::deque<CNode *> LST_NODE;
+	typedef std::deque<CNode *> DEQ_NODE;
 
 	CNode*				GetIdle(int iSize);
 	void				SetIdle(CNode* pNode);
@@ -83,10 +83,10 @@ private:
 	bool				m_bRun;
 
 	CMutex				m_mtxWork;
-	LST_NODE			m_lstWork;
+	DEQ_NODE			m_deqWork;
 
 	CMutex				m_mtxIdle;
-	LST_NODE			m_lstIdle;	
+	DEQ_NODE			m_deqIdle;	
 };
 
 #endif	// LOG_H_
