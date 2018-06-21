@@ -2,13 +2,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+
 #include <string.h>
 #include <stdarg.h>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #include <errno.h>
+
+#ifndef _MSC_VER
+#include <unistd.h>
+#include <sys/time.h>
+#include <dirent.h>
+#endif // _MSC_VER
 
 #include "CommUtil/OSTime.h"
 #include "CommUtil/Log.h"
