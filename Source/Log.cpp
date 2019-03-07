@@ -28,9 +28,9 @@ CLog::CNode::CNode(int iSize)
 
 CLog::CNode::~CNode()
 {
-	if (m_pBuf != nullptr) {
+	if (m_pBuf != NULL) {
 		free(m_pBuf);
-		m_pBuf = nullptr;
+		m_pBuf = NULL;
 	}
 
 	m_iSize	= 0;

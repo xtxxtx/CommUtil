@@ -9,6 +9,7 @@ set(SRC_LST
 	OSTime.cpp
 	Log.cpp
 	Thread.cpp
+	ThreadPool.cpp
 	PacketManager.cpp
 	SocketHandle.cpp
 	SocketListen.cpp
