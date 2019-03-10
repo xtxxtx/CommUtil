@@ -39,7 +39,9 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum)
 
 	CLog::Instance()->Write(LOG_INFO, "listen on %s:%d ...", pszAddr, iPort);
 
-	return Run(2);
+	int iCount = (lNum > 0 && lNum < 16) ? lNum : 2;
+
+	return Run(iCount);
 }
 
 void
@@ -93,23 +95,22 @@ CSocketServer::Execute()
 
 	for (; m_bRun; ) {
 		m_mtxClient.Lock();
-		for (; m_deqClient.size() > 0; ) {
+		if (m_deqClient.size() > 0) {
 			pHandle = m_deqClient.front();
 			m_deqClient.pop_front();
 
-			if (pHandle == NULL) {
-				continue;
-			}
+			m_mtxClient.Unlock();
 
-			if (pHandle->Add(iEp) == -1) {
+			if (pHandle != NULL && pHandle->Add(iEp) == -1) {
 				CLog::Instance()->Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
-			} else {
-				break;
+				pHandle->OnClose();
 			}
 		}
-		m_mtxClient.Unlock();
+		else {
+			m_mtxClient.Unlock();
+		}
 
-		nfds = epoll_wait(iEp, ees, EE_SIZE, 50);
+		nfds = epoll_wait(iEp, ees, EE_SIZE, 100);
 		if (nfds == 0) {
 			continue;
 		}
