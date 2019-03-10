@@ -84,7 +84,7 @@ void
 CSocketListen::Execute()
 {
 	if (m_cbAccept == NULL) {
-		CLog::Instance()->Write(LOG_ERROR, "m_cbAccept is NULL.", m_pHandle, m_cbAccept);
+		CLog::Instance()->Write(LOG_ERROR, "m_cbAccept is NULL.");
 		return;
 	}
 
