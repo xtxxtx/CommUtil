@@ -8,13 +8,13 @@
 #include <fcntl.h>
 
 #include "CommUtil/Log.h"
-#include "CommUtil/SocketServer.h"
 #include "CommUtil/SocketListen.h"
 
 
 static const int SAIN_SIZE = sizeof(struct sockaddr_in);
 
-CSocketListen::CSocketListen(CSocketServer* pServer) : m_pServer(pServer)
+CSocketListen::CSocketListen(void* pHandler, CBAccept cbAccept) 
+	: m_pHandler(pHandler), m_cbAccept(cbAccept)
 {
 	m_iFd	= -1;
 }
@@ -27,7 +27,7 @@ CSocketListen::~CSocketListen()
 int
 CSocketListen::Initialize(const char* pszAddr, uint16_t iPort)
 {
-	if (pszAddr == NULL) {
+	if (pszAddr==NULL || m_cbAccept==NULL) {
 		return -1;
 	}
 
@@ -83,8 +83,8 @@ CSocketListen::Close()
 void
 CSocketListen::Execute()
 {
-	if (m_pServer == NULL) {
-		CLog::Instance()->Write(LOG_ERROR, "CSocketListen::Execute() m_pServer is NULL.");
+	if (m_cbAccept == NULL) {
+		CLog::Instance()->Write(LOG_ERROR, "m_cbAccept is NULL.", m_pHandle, m_cbAccept);
 		return;
 	}
 
@@ -103,8 +103,9 @@ CSocketListen::Execute()
 
 		len = SAIN_SIZE;
 		iFd = accept(m_iFd, (sockaddr *)&sa, &len);
-		if (iFd < 1) {
-			continue;
+		if (iFd == -1 && errno != EAGAIN) {
+			CLog::Instance()->Write(LOG_ERROR, "accept() failed. errno: %d.", errno);
+			break;
 		}
 
 		setsockopt(iFd, SOL_SOCKET, SO_RCVBUF, (const char*)&BUF_SIZ, sizeof(BUF_SIZ));
@@ -112,7 +113,7 @@ CSocketListen::Execute()
 
 		szAddr[0] = 0;
 		inet_ntop(AF_INET, &(sa.sin_addr), szAddr, sizeof(szAddr));
-		m_pServer->Create(iFd, szAddr, ntohs(sa.sin_port));
+		m_cbAccept(m_pHandler, iFd, szAddr, ntohs(sa.sin_port));
 	}
 
 	CLog::Instance()->Write(LOG_INFO, "CSocketListen::Execute() exit.");

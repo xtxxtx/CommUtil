@@ -10,7 +10,13 @@
 #include "CommUtil/SocketServer.h"
 
 
+int
+OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
+{
+	return ((CSocketServer*)pHandler)->Create(iFd, pszAddr, iPort);
+}
 
+//////////////////////////////////////////////////////////////////////////
 CSocketServer::CSocketServer()
 {
 	m_pHandle	= NULL;
@@ -28,7 +34,7 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum)
 {
 	CClientManager::Instance();
 
-	m_pListen = new CSocketListen(this);
+	m_pListen = new CSocketListen((void*)this, OnAccept);
 	if (m_pListen == NULL) {
 		return -1;
 	}

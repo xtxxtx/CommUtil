@@ -8,12 +8,13 @@
 #include "CommUtil/Thread.h"
 
 
-class CSocketServer;
+
+typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
 
 class CSocketListen : public IThread
 {
 public:
-	CSocketListen(CSocketServer* pServer);
+	CSocketListen(void* pHandler, CBAccept cbAccept);
 	virtual ~CSocketListen();
 
 	int				Initialize(const char* pszAddr, uint16_t iPort);
@@ -24,7 +25,8 @@ protected:
 	void			Execute();
 
 private:
-	CSocketServer*	m_pServer;
+	void*			m_pHandler;
+	CBAccept		m_cbAccept;
 
 	int				m_iFd;
 };
