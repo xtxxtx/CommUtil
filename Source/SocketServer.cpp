@@ -10,7 +10,7 @@
 #include "CommUtil/SocketServer.h"
 
 
-int
+static int
 OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
 {
 	return ((CSocketServer*)pHandler)->Create(iFd, pszAddr, iPort);
@@ -19,7 +19,7 @@ OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
 //////////////////////////////////////////////////////////////////////////
 CSocketServer::CSocketServer()
 {
-	m_pHandle	= NULL;
+	m_pHandler	= NULL;
 	m_cbAccept	= NULL;
 	m_pListen	= NULL;
 }
@@ -34,12 +34,17 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum)
 {
 	CClientManager::Instance();
 
-	m_pListen = new CSocketListen((void*)this, OnAccept);
-	if (m_pListen == NULL) {
-		return -1;
+	if (m_pListen != NULL) {
+		m_pListen->Close();
+	}
+	else {
+		m_pListen = new CSocketListen();
+		if (m_pListen == NULL) {
+			return -1;
+		}
 	}
 
-	if (m_pListen->Initialize(pszAddr, iPort) == -1) {
+	if (m_pListen->Initialize((void*)this, OnAccept, pszAddr, iPort) == -1) {
 		return -1;
 	}
 
@@ -78,9 +83,9 @@ CSocketServer::Close()
 }
 
 void
-CSocketServer::SetHandle(void* pHandle, CBAccept cbAccept)
+CSocketServer::SetHandler(void* pHandler, CBAccept cbAccept)
 {
-	m_pHandle	= pHandle;
+	m_pHandler	= pHandler;
 	m_cbAccept	= cbAccept;
 }
 
@@ -181,7 +186,7 @@ CSocketServer::Create(int iFd, const char* pszAddr, uint16_t iPort)
 	
 	pClient->Initialize(iFd, pszAddr, iPort);
 
-	if (m_cbAccept(m_pHandle, pClient) == -1) {
+	if (m_cbAccept(m_pHandler, pClient) == -1) {
 		CClientManager::Instance()->SetIdle(pClient);
 	} else {
 		m_mtxClient.Lock();
@@ -191,4 +196,3 @@ CSocketServer::Create(int iFd, const char* pszAddr, uint16_t iPort)
 
 	return 0;
 }
-

@@ -14,10 +14,10 @@ class CSocketListen : public IThread
 	typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
 
 public:
-	CSocketListen(void* pHandler, CBAccept cbAccept);
+	CSocketListen();
 	virtual ~CSocketListen();
 
-	int				Initialize(const char* pszAddr, uint16_t iPort);
+	int				Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort);
 
 	void			Close();
 

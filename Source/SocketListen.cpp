@@ -13,10 +13,10 @@
 
 static const int SAIN_SIZE = sizeof(struct sockaddr_in);
 
-CSocketListen::CSocketListen(void* pHandler, CBAccept cbAccept) 
-	: m_pHandler(pHandler), m_cbAccept(cbAccept)
+CSocketListen::CSocketListen() 
+	: m_iFd(-1)
 {
-	m_iFd	= -1;
+
 }
 
 CSocketListen::~CSocketListen()
@@ -25,11 +25,14 @@ CSocketListen::~CSocketListen()
 }
 
 int
-CSocketListen::Initialize(const char* pszAddr, uint16_t iPort)
+CSocketListen::Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort)
 {
-	if (pszAddr==NULL || m_cbAccept==NULL) {
+	if (m_cbAccept == NULL || pszAddr == NULL) {
 		return -1;
 	}
+
+	m_pHandler = pHandler;
+	m_cbAccept = cbAccept;
 
 	if (m_iFd > 0) {
 		close(m_iFd);

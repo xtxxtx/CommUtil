@@ -27,7 +27,7 @@ public:
 
 	void			Close();
 
-	void			SetHandle(void* pHandle, CBAccept cbAccept);
+	void			SetHandler(void* pHandler, CBAccept cbAccept);
 
 	int				Create(int iFd, const char* pszAddr, uint16_t iPort);
 	int				Create(const char* pszAddr, uint16_t iPort);
@@ -42,7 +42,7 @@ private:
 	CSocketServer& operator=(const CSocketServer);
 
 protected:
-	void*			m_pHandle;
+	void*			m_pHandler;
 	CBAccept		m_cbAccept;
 	CSocketListen*	m_pListen;
 
