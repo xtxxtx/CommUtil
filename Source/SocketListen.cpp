@@ -93,6 +93,7 @@ CSocketListen::Execute()
 	char szAddr[256] = {0};
 	sockaddr_in sa;
 	socklen_t len = SAIN_SIZE;
+#if 0
 	struct pollfd pfds = {m_iFd, POLLIN, 0};
 
 	for (; m_bRun; ) {
@@ -113,5 +114,23 @@ CSocketListen::Execute()
 		inet_ntop(AF_INET, &(sa.sin_addr), szAddr, sizeof(szAddr));
 		m_pServer->Create(iFd, szAddr, ntohs(sa.sin_port));
 	}
+#else
+	for (; m_bRun;) {
+		len = SAIN_SIZE;
+		iFd = accept(m_iFd, (sockaddr *)&sa, &len);
+		if (iFd == -1 && errno != EAGAIN) {
+			break;
+		}
+
+		setsockopt(iFd, SOL_SOCKET, SO_RCVBUF, (const char*)&BUF_SIZ, sizeof(BUF_SIZ));
+		setsockopt(iFd, SOL_SOCKET, SO_SNDBUF, (const char*)&BUF_SIZ, sizeof(BUF_SIZ));
+
+		szAddr[0] = 0;
+		inet_ntop(AF_INET, &(sa.sin_addr), szAddr, sizeof(szAddr));
+		m_pServer->Create(iFd, szAddr, ntohs(sa.sin_port));
+	}
+#endif
+
+	CLog::Instance()->Write(LOG_INFO, "CSocketListen::Execute() exit.");
 }
 
