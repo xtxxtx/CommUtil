@@ -8,11 +8,11 @@
 #include "CommUtil/Thread.h"
 
 
-
-typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
-
+//////////////////////////////////////////////////////////////////////////
 class CSocketListen : public IThread
 {
+	typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
+
 public:
 	CSocketListen(void* pHandler, CBAccept cbAccept);
 	virtual ~CSocketListen();

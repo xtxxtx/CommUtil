@@ -13,11 +13,12 @@ class CSocketListen;
 class CSocketClient;
 
 
-typedef int (*CBAccept)(void*, CSocketClient*);
-
+//////////////////////////////////////////////////////////////////////////
 class CSocketServer : public IThread
 {
+	typedef int (*CBAccept)(void*, CSocketClient*);
 	typedef std::deque<CSocketClient*>	DEQ_CLIENT;
+
 public:
 	CSocketServer();
 	~CSocketServer();
