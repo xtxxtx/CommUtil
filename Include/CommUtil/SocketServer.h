@@ -66,7 +66,7 @@ private:
 protected:
 	void*			m_pHandler;
 	CBAccept		m_cbAccept;
-	CSocketListen*	m_pListen;
+	CListen*		m_pListen;
 
 	CMutex			m_mtxClient;
 	DEQ_CLIENT		m_deqClient;
