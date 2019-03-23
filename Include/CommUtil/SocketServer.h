@@ -32,6 +32,10 @@ class CSocketServer : public IThread
 		void			Execute();
 
 	private:
+		CListen();
+		CListen(const CListen&);
+
+	private:
 		CSocketServer*	m_pServer;
 
 		int				m_iFd;
@@ -46,6 +50,7 @@ public:
 	void			Close();
 
 	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
+
 	int				Create(const char* pszAddr, uint16_t iPort);
 
 	CSocketClient*	GetClient();
@@ -68,4 +73,3 @@ protected:
 };
 
 #endif  // SOCKETSERVER_H_
-

@@ -13,12 +13,6 @@
 #include "CommUtil/SocketServer.h"
 
 
-static int
-OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
-{
-	return ((CSocketServer*)pHandler)->Create(iFd, pszAddr, iPort);
-}
-
 //////////////////////////////////////////////////////////////////////////
 static const int SAIN_SIZE = sizeof(struct sockaddr_in);
 
