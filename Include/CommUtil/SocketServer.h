@@ -52,9 +52,7 @@ public:
 	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
 
 	int				Create(const char* pszAddr, uint16_t iPort);
-
-	CSocketClient*	GetClient();
-
+	
 protected:
 	virtual void	Execute();
 

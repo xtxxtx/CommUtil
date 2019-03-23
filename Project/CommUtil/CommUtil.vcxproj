@@ -84,9 +84,9 @@
     <ClInclude Include="..\..\Include\CommUtil\PacketManager.h" />
     <ClInclude Include="..\..\Include\CommUtil\Singleton.h" />
     <ClInclude Include="..\..\Include\CommUtil\SocketClient.h" />
+    <ClInclude Include="..\..\Include\CommUtil\SocketHandle.h" />
     <ClInclude Include="..\..\Include\CommUtil\SocketServer.h" />
     <ClInclude Include="..\..\Include\CommUtil\Thread.h" />
-    <ClInclude Include="..\..\Source\SocketHandle.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

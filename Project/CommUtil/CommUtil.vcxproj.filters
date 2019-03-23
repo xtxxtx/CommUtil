@@ -77,8 +77,8 @@
     <ClInclude Include="..\..\Include\CommUtil\Thread.h">
       <Filter>Header Files\CommUtil</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\SocketHandle.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\..\Include\CommUtil\SocketHandle.h">
+      <Filter>Header Files\CommUtil</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
