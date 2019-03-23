@@ -9,7 +9,6 @@
 #include <fcntl.h>
 
 #include "CommUtil/Log.h"
-#include "CommUtil/SocketListen.h"
 #include "CommUtil/SocketClient.h"
 #include "CommUtil/SocketServer.h"
 
@@ -23,8 +22,8 @@ OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
 //////////////////////////////////////////////////////////////////////////
 static const int SAIN_SIZE = sizeof(struct sockaddr_in);
 
-CSocketServer::CListen::CListen()
-	: m_iFd(-1)
+CSocketServer::CListen::CListen(CSocketServer* pServer)
+	: m_pServer(pServer), m_iFd(-1)
 {
 
 }
@@ -35,14 +34,11 @@ CSocketServer::CListen::~CListen()
 }
 
 int
-CSocketServer::CListen::Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort)
+CSocketServer::CListen::Initialize(const char* pszAddr, uint16_t iPort)
 {
-	if (m_cbAccept == NULL || pszAddr == NULL) {
+	if (m_pServer==NULL || pszAddr==NULL) {
 		return -1;
 	}
-
-	m_pHandler = pHandler;
-	m_cbAccept = cbAccept;
 
 	if (m_iFd > 0) {
 		close(m_iFd);
@@ -96,11 +92,6 @@ CSocketServer::CListen::Close()
 void
 CSocketServer::CListen::Execute()
 {
-	if (m_cbAccept == NULL) {
-		CLog::Instance()->Write(LOG_ERROR, "m_cbAccept is NULL.");
-		return;
-	}
-
 	const int BUF_SIZ = 64 * 1024;
 	int iFd = -1;
 	char szAddr[256] = { 0 };
@@ -126,7 +117,7 @@ CSocketServer::CListen::Execute()
 
 		szAddr[0] = 0;
 		inet_ntop(AF_INET, &(sa.sin_addr), szAddr, sizeof(szAddr));
-		m_cbAccept(m_pHandler, iFd, szAddr, ntohs(sa.sin_port));
+		m_pServer->OnAccept(iFd, szAddr, ntohs(sa.sin_port));
 	}
 
 	CLog::Instance()->Write(LOG_INFO, "CListen::Execute() exit.");
@@ -136,7 +127,6 @@ CSocketServer::CListen::Execute()
 CSocketServer::CSocketServer()
 {
 	m_pHandler	= NULL;
-	m_cbAccept	= NULL;
 	m_pListen	= NULL;
 }
 
@@ -146,21 +136,27 @@ CSocketServer::~CSocketServer()
 }
 
 int
-CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum)
+CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, CBConnect cbConnect)
 {
+	if (pszAddr == NULL) {
+		return -1;
+	}
+
+	m_cbConnect = cbConnect;
+
 	CClientManager::Instance();
 
 	if (m_pListen != NULL) {
 		m_pListen->Close();
 	}
 	else {
-		m_pListen = new CListen();
+		m_pListen = new CListen(this);
 		if (m_pListen == NULL) {
 			return -1;
 		}
 	}
 
-	if (m_pListen->Initialize((void*)this, OnAccept, pszAddr, iPort) == -1) {
+	if (m_pListen->Initialize(pszAddr, iPort) == -1) {
 		return -1;
 	}
 
@@ -196,13 +192,6 @@ CSocketServer::Close()
 	CClientManager::Release();
 
 	CLog::Instance()->Write(LOG_INFO, "CSocketServer::Close().");
-}
-
-void
-CSocketServer::SetHandler(void* pHandler, CBAccept cbAccept)
-{
-	m_pHandler	= pHandler;
-	m_cbAccept	= cbAccept;
 }
 
 void
@@ -285,9 +274,9 @@ CSocketServer::Execute()
 }
 
 int
-CSocketServer::Create(int iFd, const char* pszAddr, uint16_t iPort)
+CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 {
-	if (!m_bRun || pszAddr==NULL || m_cbAccept==NULL) {
+	if (!m_bRun || pszAddr == NULL || m_cbConnect == NULL) {
 		close(iFd);
 		return -1;
 	}
@@ -302,7 +291,7 @@ CSocketServer::Create(int iFd, const char* pszAddr, uint16_t iPort)
 	
 	pClient->Initialize(iFd, pszAddr, iPort);
 
-	if (m_cbAccept(m_pHandler, pClient) == -1) {
+	if (m_cbConnect(m_pHandler, pClient) == -1) {
 		CClientManager::Instance()->SetIdle(pClient);
 	} else {
 		m_mtxClient.Lock();

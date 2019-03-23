@@ -72,7 +72,6 @@
     <ClCompile Include="..\..\Source\PacketManager.cpp" />
     <ClCompile Include="..\..\Source\SocketClient.cpp" />
     <ClCompile Include="..\..\Source\SocketHandle.cpp" />
-    <ClCompile Include="..\..\Source\SocketListen.cpp" />
     <ClCompile Include="..\..\Source\SocketServer.cpp" />
     <ClCompile Include="..\..\Source\Thread.cpp" />
   </ItemGroup>
@@ -86,7 +85,6 @@
     <ClInclude Include="..\..\Include\CommUtil\Singleton.h" />
     <ClInclude Include="..\..\Include\CommUtil\SocketClient.h" />
     <ClInclude Include="..\..\Include\CommUtil\SocketHandle.h" />
-    <ClInclude Include="..\..\Include\CommUtil\SocketListen.h" />
     <ClInclude Include="..\..\Include\CommUtil\SocketServer.h" />
     <ClInclude Include="..\..\Include\CommUtil\Thread.h" />
   </ItemGroup>

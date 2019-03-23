@@ -9,25 +9,22 @@
 #include <CommUtil/Thread.h>
 
 
-class CSocketListen;
 class CSocketClient;
 
+typedef int(*CBConnect)(void* pHandler, CSocketClient*);
 
 //////////////////////////////////////////////////////////////////////////
 class CSocketServer : public IThread
 {
-	typedef int (*CBAccept)(void*, CSocketClient*);
 	typedef std::deque<CSocketClient*>	DEQ_CLIENT;
 
 	class CListen : public IThread
 	{
-		typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
-
 	public:
-		CListen();
+		CListen(CSocketServer* pServer);
 		virtual ~CListen();
 
-		int				Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort);
+		int				Initialize(const char* pszAddr, uint16_t iPort);
 
 		void			Close();
 
@@ -35,8 +32,7 @@ class CSocketServer : public IThread
 		void			Execute();
 
 	private:
-		void*			m_pHandler;
-		CBAccept		m_cbAccept;
+		CSocketServer*	m_pServer;
 
 		int				m_iFd;
 	};
@@ -45,13 +41,11 @@ public:
 	CSocketServer();
 	~CSocketServer();
 
-	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum);
+	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, CBConnect cbConnect);
 
 	void			Close();
 
-	void			SetHandler(void* pHandler, CBAccept cbAccept);
-
-	int				Create(int iFd, const char* pszAddr, uint16_t iPort);
+	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
 	int				Create(const char* pszAddr, uint16_t iPort);
 
 	CSocketClient*	GetClient();
@@ -65,7 +59,8 @@ private:
 
 protected:
 	void*			m_pHandler;
-	CBAccept		m_cbAccept;
+	CBConnect		m_cbConnect;
+
 	CListen*		m_pListen;
 
 	CMutex			m_mtxClient;

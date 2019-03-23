@@ -39,9 +39,6 @@
     <ClCompile Include="..\..\Source\SocketHandle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\SocketListen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\SocketServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,9 +72,6 @@
       <Filter>Header Files\CommUtil</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\CommUtil\SocketHandle.h">
-      <Filter>Header Files\CommUtil</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Include\CommUtil\SocketListen.h">
       <Filter>Header Files\CommUtil</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Include\CommUtil\SocketServer.h">
