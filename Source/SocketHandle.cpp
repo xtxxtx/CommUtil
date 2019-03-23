@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#include "CommUtil/SocketHandle.h"
+#include "SocketHandle.h"
 
 IHandle::IHandle()
 {
