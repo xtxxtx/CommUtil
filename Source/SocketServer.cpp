@@ -130,12 +130,13 @@ CSocketServer::~CSocketServer()
 }
 
 int
-CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, CBConnect cbConnect)
+CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler, CBConnect cbConnect)
 {
 	if (pszAddr == NULL) {
 		return -1;
 	}
 
+	m_pHandler = pHandler;
 	m_cbConnect = cbConnect;
 
 	CClientManager::Instance();

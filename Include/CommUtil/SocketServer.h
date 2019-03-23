@@ -45,7 +45,7 @@ public:
 	CSocketServer();
 	~CSocketServer();
 
-	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, CBConnect cbConnect);
+	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler, CBConnect cbConnect);
 
 	void			Close();
 
@@ -61,7 +61,7 @@ protected:
 private:
 	CSocketServer(const CSocketServer&);
 	CSocketServer& operator=(const CSocketServer);
-
+	
 protected:
 	void*			m_pHandler;
 	CBConnect		m_cbConnect;
