@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include "CommUtil/Log.h"
 #include "CommUtil/SocketListen.h"
@@ -14,6 +18,118 @@ static int
 OnAccept(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort)
 {
 	return ((CSocketServer*)pHandler)->Create(iFd, pszAddr, iPort);
+}
+
+//////////////////////////////////////////////////////////////////////////
+static const int SAIN_SIZE = sizeof(struct sockaddr_in);
+
+CSocketServer::CListen::CListen()
+	: m_iFd(-1)
+{
+
+}
+
+CSocketServer::CListen::~CListen()
+{
+
+}
+
+int
+CSocketServer::CListen::Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort)
+{
+	if (m_cbAccept == NULL || pszAddr == NULL) {
+		return -1;
+	}
+
+	m_pHandler = pHandler;
+	m_cbAccept = cbAccept;
+
+	if (m_iFd > 0) {
+		close(m_iFd);
+	}
+	m_iFd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (m_iFd < 1) {
+		return -1;
+	}
+
+	do {
+		int iFlag = 1;
+		if (setsockopt(m_iFd, SOL_SOCKET, SO_REUSEADDR, (const char*)&iFlag, sizeof(iFlag)) == -1) {
+			break;
+		}
+
+		struct sockaddr_in sa;
+		sa.sin_family = AF_INET;
+		sa.sin_port = htons(iPort);
+		inet_pton(AF_INET, pszAddr, &(sa.sin_addr));
+		sa.sin_zero[0] = 0;
+
+		if (bind(m_iFd, (const sockaddr*)&sa, sizeof(sa)) == -1) {
+			CLog::Instance()->Write(LOG_ERROR, "bind(%s:%d) failed. errno: %d", pszAddr, iPort, errno);
+			break;
+		}
+
+		if (listen(m_iFd, SOMAXCONN) == -1) {
+			break;
+		}
+
+		return Run(2);
+	} while (false);
+
+	close(m_iFd);
+	m_iFd = -1;
+
+	return -1;
+}
+
+void
+CSocketServer::CListen::Close()
+{
+	if (m_iFd > 0) {
+		close(m_iFd);
+		m_iFd = -1;
+	}
+
+	WaitExit();
+}
+
+void
+CSocketServer::CListen::Execute()
+{
+	if (m_cbAccept == NULL) {
+		CLog::Instance()->Write(LOG_ERROR, "m_cbAccept is NULL.");
+		return;
+	}
+
+	const int BUF_SIZ = 64 * 1024;
+	int iFd = -1;
+	char szAddr[256] = { 0 };
+	sockaddr_in sa;
+	socklen_t len = SAIN_SIZE;
+
+	//	struct pollfd pfds = {m_iFd, POLLIN, 0};
+
+	for (; m_bRun;) {
+		//		if (poll(&pfds, 1, 100) < 1) {
+		//			continue;
+		//		}
+
+		len = SAIN_SIZE;
+		iFd = accept(m_iFd, (sockaddr *)&sa, &len);
+		if (iFd == -1 && errno != EAGAIN) {
+			CLog::Instance()->Write(LOG_ERROR, "accept() failed. errno: %d.", errno);
+			break;
+		}
+
+		setsockopt(iFd, SOL_SOCKET, SO_RCVBUF, (const char*)&BUF_SIZ, sizeof(BUF_SIZ));
+		setsockopt(iFd, SOL_SOCKET, SO_SNDBUF, (const char*)&BUF_SIZ, sizeof(BUF_SIZ));
+
+		szAddr[0] = 0;
+		inet_ntop(AF_INET, &(sa.sin_addr), szAddr, sizeof(szAddr));
+		m_cbAccept(m_pHandler, iFd, szAddr, ntohs(sa.sin_port));
+	}
+
+	CLog::Instance()->Write(LOG_INFO, "CListen::Execute() exit.");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -38,7 +154,7 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum)
 		m_pListen->Close();
 	}
 	else {
-		m_pListen = new CSocketListen();
+		m_pListen = new CListen();
 		if (m_pListen == NULL) {
 			return -1;
 		}
