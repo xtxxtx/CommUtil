@@ -19,6 +19,28 @@ class CSocketServer : public IThread
 	typedef int (*CBAccept)(void*, CSocketClient*);
 	typedef std::deque<CSocketClient*>	DEQ_CLIENT;
 
+	class CSocketListen : public IThread
+	{
+		typedef int(*CBAccept)(void* pHandler, int iFd, const char* pszAddr, unsigned short iPort);
+
+	public:
+		CSocketListen();
+		virtual ~CSocketListen();
+
+		int				Initialize(void* pHandler, CBAccept cbAccept, const char* pszAddr, uint16_t iPort);
+
+		void			Close();
+
+	protected:
+		void			Execute();
+
+	private:
+		void*			m_pHandler;
+		CBAccept		m_cbAccept;
+
+		int				m_iFd;
+	};
+
 public:
 	CSocketServer();
 	~CSocketServer();
