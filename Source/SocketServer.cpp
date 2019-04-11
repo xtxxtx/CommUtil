@@ -118,9 +118,74 @@ CSocketServer::CListen::Execute()
 }
 
 //////////////////////////////////////////////////////////////////////////
+CSocketServer::CClient::CClient()
+{
+	m_iFd = -1;
+	m_iSize = 8192;
+	m_pBuf = (char*)malloc(8192);
+}
+
+CSocketServer::CClient::~CClient()
+{
+	if (m_pBuf) {
+		free(m_pBuf);
+		m_pBuf = NULL;
+	}
+}
+
+
+int
+CSocketServer::CClient::Initialize(int iFd, const char* pszAddr, uint16_t iPort)
+{
+	if (iFd<1 || pszAddr == NULL) {
+		return -1;
+	}
+	
+	m_iFd = iFd;
+	strcpy(m_szAddr, pszAddr);
+	m_iPort = iPort;
+
+	return 0;
+}
+
+int
+CSocketServer::CClient::OnRecv()
+{
+	if (m_iFd == -1) {
+		return -1;
+	}
+
+	int iResult = recv(m_iFd, m_pBuf, m_iSize, 0);
+	if (iResult > 0) {
+		if (m_cbReceive) {
+			m_cbReceive(this, m_pBuf, iResult);
+		}
+	}
+	else {
+		if (m_cbClose) {
+			m_cbClose(this, iResult);
+		}
+	}
+
+	return 0;
+}
+
+void
+CSocketServer::CClient::Close()
+{
+	if (m_iFd > 0) {
+		Del();
+
+		close(m_iFd);
+		m_iFd = -1;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 CSocketServer::CSocketServer()
 {
 	m_pHandler	= NULL;
+	m_cbConnect = NULL;
 	m_pListen	= NULL;
 }
 
@@ -130,7 +195,8 @@ CSocketServer::~CSocketServer()
 }
 
 int
-CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler, CBConnect cbConnect)
+CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler,
+	CBConnect cbConnect, CBReceive cbReceive, CBClose cbClose)
 {
 	if (pszAddr == NULL) {
 		return -1;
@@ -138,6 +204,8 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* 
 
 	m_pHandler = pHandler;
 	m_cbConnect = cbConnect;
+	m_cbReceive = cbReceive;
+	m_cbClose = cbClose;
 
 	CClientManager::Instance();
 
@@ -173,7 +241,7 @@ CSocketServer::Close()
 
 	WaitExit();
 
-	CSocketClient* pClient = NULL;
+	CClient* pClient = NULL;
 	m_mtxClient.Lock();
 	DEQ_CLIENT::iterator it = m_deqClient.begin();
 	for (; it!=m_deqClient.end(); it++) {
@@ -202,6 +270,7 @@ CSocketServer::Execute()
 	struct epoll_event ees[EE_SIZE];
 	int iResult			= 0;
 	int nfds			= 0;
+#if 0
 	IHandle* pHandle	= NULL;
 
 	for (; m_bRun; ) {
@@ -264,7 +333,70 @@ CSocketServer::Execute()
 			}
 		}
 	}
+#else
+	CClient* pClient = NULL;
 
+	for (; m_bRun;) {
+		m_mtxClient.Lock();
+		if (m_deqClient.size() > 0) {
+			pClient = m_deqClient.front();
+			m_deqClient.pop_front();
+
+			m_mtxClient.Unlock();
+
+			if (pClient != NULL && pClient->Add(iEp) == -1) {
+				CLog::Instance()->Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
+				pClient->Close();
+			}
+		}
+		else {
+			m_mtxClient.Unlock();
+		}
+
+		nfds = epoll_wait(iEp, ees, EE_SIZE, 100);
+		if (nfds == 0) {
+			continue;
+		}
+		if (nfds == -1) {
+			if (errno == EINTR) {
+				continue;
+			}
+			CLog::Instance()->Write(LOG_ERROR, "epoll_wait() failed. errno: %d.", errno);
+			break;
+		}
+
+		for (int i = 0; i<nfds; i++) {
+			pClient = (CClient *)(ees[i].data.ptr);
+			if (pClient == NULL) {
+				continue;
+			}
+			if (ees[i].events & EPOLLERR || ees[i].events & EPOLLHUP) {
+				pClient->Close();
+				continue;
+			}
+
+			if (ees[i].events & EPOLLIN) {
+				iResult = pClient->OnRecv();
+				if (iResult == 0) {
+					continue;
+				}
+
+				if (iResult < 0) {
+					pClient->Close();
+				}
+			}
+
+			if (ees[i].events & EPOLLOUT) {
+			//	iResult = pClient->OnSend();
+			//	if (iResult == 0) {
+			//		continue;
+			//	}
+
+			//	pClient->OnClose();
+			}
+		}
+	}
+#endif
 	close(iEp);
 }
 
@@ -275,8 +407,9 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		close(iFd);
 		return -1;
 	}
-
+#if 0
 	CSocketClient* pClient = CClientManager::Instance()->GetIdle();
+	
 	if (pClient == NULL) {
 		close(iFd);
 		return -1;
@@ -293,6 +426,21 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		m_deqClient.push_back(pClient);
 		m_mtxClient.Unlock();
 	}
+#else
+	CClient* pClient = new CClient();
+	if (pClient == NULL) {
+		close(iFd);
+		return -1;
+	}
 
+	if (m_cbConnect(m_pHandler, pClient) == -1) {
+		delete pClient;
+	}
+	else {
+		m_mtxClient.Lock();
+		m_deqClient.push_back(pClient);
+		m_mtxClient.Unlock();
+	}
+#endif
 	return 0;
 }

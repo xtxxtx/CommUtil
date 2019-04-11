@@ -11,13 +11,14 @@
 
 class CSocketClient;
 
-typedef int(*CBConnect)(void* pHandler, CSocketClient*);
+// typedef int(*CBConnect)(void* pHandler, CSocketClient*);
+typedef int(*CBConnect)(void* pHandler, void* pClient);
+typedef int(*CBReceive)(void* pClient, const char* pszBuf, int iLen);
+typedef int(*CBClose)(void* pClient, int iError);
 
 //////////////////////////////////////////////////////////////////////////
 class CSocketServer : public IThread
 {
-	typedef std::deque<CSocketClient*>	DEQ_CLIENT;
-
 	class CListen : public IThread
 	{
 	public:
@@ -41,17 +42,56 @@ class CSocketServer : public IThread
 		int				m_iFd;
 	};
 
+	class CClient
+	{
+	public:
+		CClient();
+		~CClient();
+
+		int			Initialize(int iFd, const char* pszAddr, uint16_t iPort);
+
+		void		Set(int iFd)	{ m_iFd = iFd; }
+
+		int			Add(int iEpoll);
+		void		Del();
+
+		int&		GetFD() { return m_iFd; }
+
+		int			OnRecv();
+
+		void		Close();
+
+		struct epoll_event* GetEE() { return &m_ee; }
+
+	private:
+		int			m_iFd;
+		char		m_szAddr[256];
+		uint16_t	m_iPort;
+		int			m_iEpoll;
+
+		struct epoll_event  m_ee;
+
+		char*		m_pBuf;
+		int32_t		m_iSize;
+
+		CBReceive	m_cbReceive;
+		CBClose		m_cbClose;
+	};
+
+	typedef std::deque<CClient*>	DEQ_CLIENT;
+
 public:
 	CSocketServer();
 	~CSocketServer();
 
-	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler, CBConnect cbConnect);
+	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler,
+						CBConnect cbConnect, CBReceive cbReceive, CBClose cbClose);
 
 	void			Close();
 
 	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
 
-	int				Create(const char* pszAddr, uint16_t iPort);
+	int				Send(void* pClient, const char* pszBuf, int iLen);
 	
 protected:
 	virtual void	Execute();
@@ -63,6 +103,8 @@ private:
 protected:
 	void*			m_pHandler;
 	CBConnect		m_cbConnect;
+	CBReceive		m_cbReceive;
+	CBClose			m_cbClose;
 
 	CListen*		m_pListen;
 
