@@ -3,7 +3,7 @@
 #ifndef SOCKETSERVER_H_
 #define SOCKETSERVER_H_
 
-#include <deque>
+#include <list>
 
 #include <CommUtil/Mutex.h>
 #include <CommUtil/Thread.h>
@@ -13,8 +13,8 @@ class CSocketClient;
 
 // typedef int(*CBConnect)(void* pHandler, CSocketClient*);
 typedef int(*CBConnect)(void* pHandler, void* pClient);
-typedef int(*CBReceive)(void* pClient, const char* pszBuf, int iLen);
-typedef int(*CBClose)(void* pClient, int iError);
+typedef int(*CBReceive)(void* pHandler, void* pClient, const char* pszBuf, int iLen);
+typedef int(*CBClose)(void* pHandler, void* pClient, int iError);
 
 //////////////////////////////////////////////////////////////////////////
 class CSocketServer : public IThread
@@ -44,9 +44,13 @@ class CSocketServer : public IThread
 
 	class CClient
 	{
+		enum { BUF_SIZ=8192 };
+
 	public:
 		CClient();
 		~CClient();
+
+		friend class CSocketServer;
 
 		int			Initialize(int iFd, const char* pszAddr, uint16_t iPort);
 
@@ -57,7 +61,7 @@ class CSocketServer : public IThread
 
 		int&		GetFD() { return m_iFd; }
 
-		int			OnRecv();
+		int			OnRecv(void* pHander, char* pBuf, int iSize);
 
 		void		Close();
 
@@ -78,7 +82,7 @@ class CSocketServer : public IThread
 		CBClose		m_cbClose;
 	};
 
-	typedef std::deque<CClient*>	DEQ_CLIENT;
+	typedef std::list<CClient*>	LST_CLIENT;
 
 public:
 	CSocketServer();
@@ -87,19 +91,24 @@ public:
 	int				Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* pHandler,
 						CBConnect cbConnect, CBReceive cbReceive, CBClose cbClose);
 
-	void			Close();
 
-	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
+	void			Close(void* pHandler, void* pClient);
+
+	void			Close();
 
 	int				Send(void* pClient, const char* pszBuf, int iLen);
 	
 protected:
 	virtual void	Execute();
 
+	int				OnAccept(int iFd, const char* pszAddr, uint16_t iPort);
+
 private:
 	CSocketServer(const CSocketServer&);
 	CSocketServer& operator=(const CSocketServer);
 	
+	int				OnRecv(int iFd, char* pszBuf, int iSize);
+
 protected:
 	void*			m_pHandler;
 	CBConnect		m_cbConnect;
@@ -108,8 +117,11 @@ protected:
 
 	CListen*		m_pListen;
 
-	CMutex			m_mtxClient;
-	DEQ_CLIENT		m_deqClient;
+	CMutex			m_mtxClientNew;
+	LST_CLIENT		m_lstClientNew;
+
+	CMutex			m_mtxClientAll;
+	LST_CLIENT		m_lstClientAll;
 };
 
 #endif  // SOCKETSERVER_H_

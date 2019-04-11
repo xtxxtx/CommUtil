@@ -123,8 +123,8 @@ CSocketServer::CListen::Execute()
 CSocketServer::CClient::CClient()
 {
 	m_iFd = -1;
-	m_iSize = 8192;
-	m_pBuf = (char*)malloc(8192);
+	m_iSize = BUF_SIZ;
+	m_pBuf = (char*)malloc(BUF_SIZ);
 }
 
 CSocketServer::CClient::~CClient()
@@ -147,25 +147,44 @@ CSocketServer::CClient::Initialize(int iFd, const char* pszAddr, uint16_t iPort)
 	strcpy(m_szAddr, pszAddr);
 	m_iPort = iPort;
 
+	int iFlag = fcntl(iFd, F_GETFL, 0);
+	fcntl(iFd, F_SETFL, iFlag | O_NONBLOCK);
+
 	return 0;
 }
 
 int
-CSocketServer::CClient::OnRecv()
+CSocketServer::CClient::OnRecv(void* pHander, char* pBuf, int iSize)
 {
 	if (m_iFd == -1) {
 		return -1;
 	}
 
-	int iResult = recv(m_iFd, m_pBuf, m_iSize, 0);
+	int iResult = 0;
+
+TAG_BEGIN:
+	iResult = recv(m_iFd, pBuf, iSize, 0);
+
 	if (iResult > 0) {
 		if (m_cbReceive) {
-			m_cbReceive(this, m_pBuf, iResult);
+			if (m_cbReceive(pHander, this, m_pBuf, iResult) == -1) {
+				return -1;
+			}
+		}
+		if (iResult == iSize) {
+			goto TAG_BEGIN;
 		}
 	}
 	else {
 		if (m_cbClose) {
-			m_cbClose(this, iResult);
+			m_cbClose(pHander, this, iResult);
+		}
+
+		if (iResult==-1 && errno==EAGAIN) {
+			goto TAG_BEGIN;
+		}
+		else {
+			return -1;
 		}
 	}
 
@@ -225,9 +244,9 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* 
 		return -1;
 	}
 
-	CLog::Instance()->Write(LOG_INFO, "listen on %s:%d ...", pszAddr, iPort);
+	int iCount = (lNum > 0 && lNum < 32) ? lNum : 2;
 
-	int iCount = (lNum > 0 && lNum < 16) ? lNum : 2;
+	CLog::Instance()->Write(LOG_INFO, "listen on %s:%d ...... use threads: %d", pszAddr, iPort, iCount);
 
 	return Run(iCount);
 }
@@ -244,15 +263,15 @@ CSocketServer::Close()
 	WaitExit();
 
 	CClient* pClient = NULL;
-	m_mtxClient.Lock();
-	DEQ_CLIENT::iterator it = m_deqClient.begin();
-	for (; it!=m_deqClient.end(); it++) {
+	m_mtxClientAll.Lock();
+	LST_CLIENT::iterator it = m_lstClientAll.begin();
+	for (; it != m_lstClientAll.end(); it++) {
 		pClient = *it;
 		pClient->Close();
 		delete(pClient);
 	}
-	m_deqClient.clear();
-	m_mtxClient.Unlock();
+	m_lstClientAll.clear();
+	m_mtxClientAll.Unlock();
 
 	CClientManager::Release();
 
@@ -268,6 +287,9 @@ CSocketServer::Execute()
 		return;
 	}
 
+	static const int BUF_SIZ = 32768;
+	char szBuf[BUF_SIZ] = { 0 };
+
 	const int EE_SIZE = 256;
 	struct epoll_event ees[EE_SIZE];
 	int iResult			= 0;
@@ -277,9 +299,9 @@ CSocketServer::Execute()
 
 	for (; m_bRun; ) {
 		m_mtxClient.Lock();
-		if (m_deqClient.size() > 0) {
-			pHandle = m_deqClient.front();
-			m_deqClient.pop_front();
+		if (m_lstClient.size() > 0) {
+			pHandle = m_lstClient.front();
+			m_lstClient.pop_front();
 
 			m_mtxClient.Unlock();
 
@@ -339,12 +361,12 @@ CSocketServer::Execute()
 	CClient* pClient = NULL;
 
 	for (; m_bRun;) {
-		m_mtxClient.Lock();
-		if (m_deqClient.size() > 0) {
-			pClient = m_deqClient.front();
-			m_deqClient.pop_front();
+		m_mtxClientNew.Lock();
+		if (m_lstClientNew.size() > 0) {
+			pClient = m_lstClientNew.front();
+			m_lstClientNew.pop_front();
 
-			m_mtxClient.Unlock();
+			m_mtxClientNew.Unlock();
 
 			if (pClient != NULL && pClient->Add(iEp) == -1) {
 				CLog::Instance()->Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
@@ -352,7 +374,7 @@ CSocketServer::Execute()
 			}
 		}
 		else {
-			m_mtxClient.Unlock();
+			m_mtxClientNew.Unlock();
 		}
 
 		nfds = epoll_wait(iEp, ees, EE_SIZE, 100);
@@ -378,13 +400,20 @@ CSocketServer::Execute()
 			}
 
 			if (ees[i].events & EPOLLIN) {
-				iResult = pClient->OnRecv();
+				iResult = pClient->OnRecv(m_pHandler, szBuf, BUF_SIZ);
+
 				if (iResult == 0) {
 					continue;
 				}
 
 				if (iResult < 0) {
 					pClient->Close();
+
+					m_mtxClientAll.Lock();
+					m_lstClientAll.remove(pClient);
+					m_mtxClientAll.Unlock();
+
+					delete pClient;
 				}
 			}
 
@@ -425,7 +454,7 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		CClientManager::Instance()->SetIdle(pClient);
 	} else {
 		m_mtxClient.Lock();
-		m_deqClient.push_back(pClient);
+		m_lstClient.push_back(pClient);
 		m_mtxClient.Unlock();
 	}
 #else
@@ -439,10 +468,31 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		delete pClient;
 	}
 	else {
-		m_mtxClient.Lock();
-		m_deqClient.push_back(pClient);
-		m_mtxClient.Unlock();
+		m_mtxClientNew.Lock();
+		m_lstClientNew.push_back(pClient);
+		m_mtxClientNew.Unlock();
+
+		m_mtxClientAll.Lock();
+		m_lstClientAll.push_back(pClient);
+		m_mtxClientAll.Unlock();
 	}
 #endif
 	return 0;
+}
+
+void
+CSocketServer::Close(void* pHandler, void* pClient)
+{
+	if (pClient == NULL) {
+		return;
+	}
+
+	m_mtxClientAll.Lock();
+	if (std::find(m_lstClientAll.begin(), m_lstClientAll.end(), (CClient*)pClient) == m_lstClientAll.end()) {
+		m_mtxClientAll.Unlock();
+		return;
+	}
+	m_mtxClientAll.Unlock();
+
+	((CClient*)pClient)->Close();
 }
