@@ -12,7 +12,7 @@ set(SRC_LST
 	ThreadPool.cpp
 	PacketManager.cpp
 	SocketHandle.cpp
-	SocketListen.cpp
+#	SocketListen.cpp
 	SocketClient.cpp
 	SocketServer.cpp)
 

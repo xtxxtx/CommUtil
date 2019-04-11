@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <malloc.h>
+#include <string.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
