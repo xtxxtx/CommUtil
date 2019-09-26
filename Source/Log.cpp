@@ -46,30 +46,13 @@ CLog::CNode::Cleanup()
 
 
 //////////////////////////////////////////////////////////////////////////
-CLog*
-CLog::m_pThis	= NULL;
+CLog
+CLog::m_This;
 
-CLog*
+CLog&
 CLog::Instance()
 {
-	static CLog* pLog = new CLog();
-	if (m_pThis == NULL) {
-		m_pThis = pLog;
-	}
-
-	return m_pThis;
-}
-
-void
-CLog::Release()
-{
-	if (m_pThis == NULL) {
-		return;
-	}
-
-	m_pThis->Close();
-	delete m_pThis;
-	m_pThis	= NULL;
+	return m_This;
 }
 
 CLog::CLog()
@@ -87,7 +70,7 @@ CLog::CLog()
 
 CLog::~CLog()
 {
-
+	Close();
 }
 
 int

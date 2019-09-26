@@ -57,7 +57,7 @@ CSocketServer::CListen::Initialize(const char* pszAddr, uint16_t iPort)
 		sa.sin_zero[0] = 0;
 
 		if (bind(m_iFd, (const sockaddr*)&sa, sizeof(sa)) == -1) {
-			CLog::Instance()->Write(LOG_ERROR, "bind(%s:%d) failed. errno: %d", pszAddr, iPort, errno);
+			CLog::Instance().Write(LOG_ERROR, "bind(%s:%d) failed. errno: %d", pszAddr, iPort, errno);
 			break;
 		}
 
@@ -104,7 +104,7 @@ CSocketServer::CListen::Execute()
 		len = SAIN_SIZE;
 		iFd = accept(m_iFd, (sockaddr *)&sa, &len);
 		if (iFd == -1 && errno != EAGAIN) {
-			CLog::Instance()->Write(LOG_ERROR, "accept() failed. errno: %d.", errno);
+			CLog::Instance().Write(LOG_ERROR, "accept() failed. errno: %d.", errno);
 			break;
 		}
 
@@ -116,7 +116,7 @@ CSocketServer::CListen::Execute()
 		m_pServer->OnAccept(iFd, szAddr, ntohs(sa.sin_port));
 	}
 
-	CLog::Instance()->Write(LOG_INFO, "CListen::Execute() exit.");
+	CLog::Instance().Write(LOG_INFO, "CListen::Execute() exit.");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -246,7 +246,7 @@ CSocketServer::Initialize(const char* pszAddr, uint16_t iPort, long lNum, void* 
 
 	int iCount = (lNum > 0 && lNum < 32) ? lNum : 2;
 
-	CLog::Instance()->Write(LOG_INFO, "listen on %s:%d ...... use threads: %d", pszAddr, iPort, iCount);
+	CLog::Instance().Write(LOG_INFO, "listen on %s:%d ...... use threads: %d", pszAddr, iPort, iCount);
 
 	return Run(iCount);
 }
@@ -275,7 +275,7 @@ CSocketServer::Close()
 
 	CClientManager::Release();
 
-	CLog::Instance()->Write(LOG_INFO, "CSocketServer::Close().");
+	CLog::Instance().Write(LOG_INFO, "CSocketServer::Close().");
 }
 
 void
@@ -306,7 +306,7 @@ CSocketServer::Execute()
 			m_mtxClient.Unlock();
 
 			if (pHandle != NULL && pHandle->Add(iEp) == -1) {
-				CLog::Instance()->Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
+				CLog::Instance().Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
 				pHandle->OnClose();
 			}
 		}
@@ -322,7 +322,7 @@ CSocketServer::Execute()
 			if (errno == EINTR) {
 				continue;
 			}
-			CLog::Instance()->Write(LOG_ERROR, "epoll_wait() failed. errno: %d.", errno);
+			CLog::Instance().Write(LOG_ERROR, "epoll_wait() failed. errno: %d.", errno);
 			break;
 		}
 
@@ -369,7 +369,7 @@ CSocketServer::Execute()
 			m_mtxClientNew.Unlock();
 
 			if (pClient != NULL && pClient->Add(iEp) == -1) {
-				CLog::Instance()->Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
+				CLog::Instance().Write(LOG_WARN, "pHandle->Add(%d) failed.", iEp);
 				pClient->Close();
 			}
 		}
@@ -385,7 +385,7 @@ CSocketServer::Execute()
 			if (errno == EINTR) {
 				continue;
 			}
-			CLog::Instance()->Write(LOG_ERROR, "epoll_wait() failed. errno: %d.", errno);
+			CLog::Instance().Write(LOG_ERROR, "epoll_wait() failed. errno: %d.", errno);
 			break;
 		}
 
@@ -446,7 +446,7 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		return -1;
 	}
 
-	CLog::Instance()->Write(LOG_INFO, "[%5d] client(%s:%d) connected.", iFd, pszAddr, iPort);
+	CLog::Instance().Write(LOG_INFO, "[%5d] client(%s:%d) connected.", iFd, pszAddr, iPort);
 	
 	pClient->Initialize(iFd, pszAddr, iPort);
 
@@ -479,7 +479,7 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 #endif
 	return 0;
 }
-
+#include <algorithm>
 void
 CSocketServer::Close(void* pHandler, void* pClient)
 {

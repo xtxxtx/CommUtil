@@ -18,8 +18,7 @@ public:
 	enum {BUF_LEN=8192};
 	~CLog();
 
-	static CLog*	Instance();
-	static void		Release();
+	static CLog&	Instance();
 
 public:
 	int				Initialize(const char* pszPath, const char* pszName, int iLevel=LOG_INFO);
@@ -70,7 +69,7 @@ private:
 	void				Cleanup();
 
 private:
-	static CLog*		m_pThis;
+	static CLog			m_This;
 	pthread_t			m_hThread[2];
 
 	char				m_szPath[512];

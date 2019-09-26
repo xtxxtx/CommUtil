@@ -74,7 +74,7 @@ CPacketManager::SetIdle(PACKET* pPacket)
 	}
 	
 	if (pPacket->iSize > BODY_SIZE) {
-		CLog::Instance()->Write(LOG_INFO, "release BIG packet. size: %d > %d", pPacket->iSize, BODY_SIZE);	
+		CLog::Instance().Write(LOG_INFO, "release BIG packet. size: %d > %d", pPacket->iSize, BODY_SIZE);	
 		free(pPacket->pBody);
 		delete pPacket;
 		return;
@@ -85,7 +85,7 @@ CPacketManager::SetIdle(PACKET* pPacket)
 	for (; it!=m_deqPacket.end(); it++) {
 		if (*it == pPacket) {
 			m_mtxPacket.Unlock();
-			CLog::Instance()->Write(LOG_WARN, "CPacketManager::SetIdle(%p) repeated.", pPacket);
+			CLog::Instance().Write(LOG_WARN, "CPacketManager::SetIdle(%p) repeated.", pPacket);
 			return;
 		}
 	}
@@ -102,7 +102,7 @@ CPacketManager::SetIdle(PACKET* pPacket)
 	}
 	m_mtxPacket.Unlock();
 	
-	CLog::Instance()->Write(LOG_INFO, "CPacketManager::SetIdle() m_deqPacket.size() %ld", iSize);	
+	CLog::Instance().Write(LOG_INFO, "CPacketManager::SetIdle() m_deqPacket.size() %ld", iSize);	
 	free(pPacket->pBody);
 	delete pPacket;
 }

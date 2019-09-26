@@ -54,7 +54,7 @@ CSocketClient::Initialize(int iFd, const char* pszAddr, uint16_t iPort)
 void
 CSocketClient::Close()
 {
-	CLog::Instance()->Write(LOG_INFO, "CSocketClient::Close(%d).", m_iFd);
+	CLog::Instance().Write(LOG_INFO, "CSocketClient::Close(%d).", m_iFd);
 
 	OnClose();
 
@@ -77,7 +77,7 @@ CSocketClient::OnRecv()
 	if (m_pPacket == NULL) {
 		m_pPacket = CPacketManager::Instance()->GetIdle();
 		if (m_pPacket == NULL) {
-			CLog::Instance()->Write(LOG_WARN, "CPacketManager::Instance()->GetIdle() is NULL.");
+			CLog::Instance().Write(LOG_WARN, "CPacketManager::Instance()->GetIdle() is NULL.");
 			return -1;
 		}
 		m_pPacket->pParent = this;
@@ -88,7 +88,7 @@ CSocketClient::OnRecv()
 		iResult = recv(m_iFd, ((char*)m_pPacket)+m_pPacket->iHdrLen, PKT_HDR_LEN-m_pPacket->iHdrLen, 0);	
 		if (iResult > 0) {
 			if (m_pPacket->cBegin != FLAG_BEGIN) {
-				CLog::Instance()->Write(LOG_WARN, "invalid head flag.");
+				CLog::Instance().Write(LOG_WARN, "invalid head flag.");
 				m_pPacket->iHdrLen = 0;
 				return -1;
 			}
@@ -124,7 +124,7 @@ CSocketClient::Send(const char* pszBuf, int iLen, long lTimeout)
 		iResult = send(m_iFd, pszBuf+iOff, iLen-iOff, MSG_DONTWAIT);
 		if (iResult == -1) {
 			if (errno==EAGAIN || errno==EWOULDBLOCK) {
-				CLog::Instance()->Write(LOG_WARN, "send to (%s:%d) timeout: %d. left data: %d",
+				CLog::Instance().Write(LOG_WARN, "send to (%s:%d) timeout: %d. left data: %d",
 					m_szAddr, m_iPort, errno, iLen-iOff);
 				if (lSleep > lTimeout) {
 					lSleep = lTimeout;
@@ -137,7 +137,7 @@ CSocketClient::Send(const char* pszBuf, int iLen, long lTimeout)
 					break;
 				}
 			} else {
-				CLog::Instance()->Write(LOG_ERROR, "send to (%s:%d) failed. errno: %d", m_szAddr, m_iPort, errno);
+				CLog::Instance().Write(LOG_ERROR, "send to (%s:%d) failed. errno: %d", m_szAddr, m_iPort, errno);
 				return -1;
 			}
 		} else {
@@ -201,13 +201,13 @@ CClientManager::SetIdle(CSocketClient* pClient)
 	for (; it!=m_deqClient.end(); it++) {
 		if (*it == pClient) {
 			m_mtxClient.Unlock();
-			CLog::Instance()->Write(LOG_WARN, "CClientManager::SetIdle(%p) is exist!!!", pClient);
+			CLog::Instance().Write(LOG_WARN, "CClientManager::SetIdle(%p) is exist!!!", pClient);
 			return;
 		}
 	}
 
 	DEQ_CLIENT::size_type iSize = m_deqClient.size();
-	CLog::Instance()->Write(LOG_INFO, "CClientManager::SetIdle(%p) size: %ld.", pClient, iSize);
+	CLog::Instance().Write(LOG_INFO, "CClientManager::SetIdle(%p) size: %ld.", pClient, iSize);
 	if (iSize < 1024) {
 		m_deqClient.push_back(pClient);
 		m_mtxClient.Unlock();
