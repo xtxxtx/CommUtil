@@ -15,7 +15,7 @@ enum { LOG_CLOSE, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG };
 class CLog
 {
 public:
-	enum {BUF_LEN=8192};
+	enum {BUF_SIZ = 4096};
 	~CLog();
 
 	static CLog&	Instance();
@@ -53,7 +53,7 @@ private:
 	} ;
 	typedef std::deque<CNode *> DEQ_NODE;
 
-	CNode*				GetIdle(int iSize);
+	CNode*				GetIdle();
 	void				SetIdle(CNode* pNode);
 
 	CNode*				GetWork();

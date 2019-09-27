@@ -147,16 +147,12 @@ CLog::SetFileSize(long lFileSize)
 }
 
 CLog::CNode*
-CLog::GetIdle(int iSize)
+CLog::GetIdle()
 {
-	if (iSize > BUF_LEN) {
-		return new CNode(iSize);
-	}
-
 	CNode* pNode = NULL;
 	m_mtxIdle.Lock();
 	if (m_deqIdle.empty()) {
-		pNode = new CNode(BUF_LEN);
+		pNode = new CNode(BUF_SIZ);
 	} else {
 		pNode = m_deqIdle.front();
 		m_deqIdle.pop_front();
@@ -164,7 +160,7 @@ CLog::GetIdle(int iSize)
 	m_mtxIdle.Unlock();
 
 	if (pNode != NULL) {
-		memset(pNode->m_pBuf, 0, BUF_LEN);
+		pNode->m_pBuf[0] = 0;
 		pNode->m_iLen = 0;
 	}
 
@@ -175,6 +171,11 @@ void
 CLog::SetIdle(CNode* pNode)
 {
 	if (pNode == NULL) {
+		return;
+	}
+
+	if (pNode->m_iSize > BUF_SIZ) {
+		delete pNode;
 		return;
 	}
 
@@ -222,7 +223,7 @@ CLog::Write(int iLevel, const char* pszFormat, ...)
 		return;
 	}
 
-	CNode* pNode = GetIdle(BUF_LEN);
+	CNode* pNode = GetIdle();
 	if (pNode == NULL) {
 		return;
 	}
@@ -236,16 +237,35 @@ CLog::Write(int iLevel, const char* pszFormat, ...)
 	int iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03ld %s ",
 		tmCurr.tm_mon+1, tmCurr.tm_mday, tmCurr.tm_hour, tmCurr.tm_min, tmCurr.tm_sec, tv.tv_usec/1000, LOG_TYPE[iLevel-1]);
 
-	static const int MAX_LEN = BUF_LEN-2;
+	static const int MAX_LEN = pNode->m_iSize-2;
 
 	va_list args;
 	va_start(args, pszFormat);
-	iLen += vsprintf(pNode->m_pBuf+iLen, pszFormat, args);
+	int iTmp = vsnprintf(pNode->m_pBuf+iLen, MAX_LEN-iLen, pszFormat, args);
 	va_end(args);
-
-	if (iLen > MAX_LEN) {
-		iLen = MAX_LEN;
+	if (iTmp == -1) {
+		SetIdle(pNode);
+		return;
 	}
+
+	if (iTmp >= MAX_LEN-iLen) {
+		int iSize = ((iLen+ iTmp + 2) / 1024 + 1) * 1024;
+		char* p = (char*)realloc(pNode->m_pBuf, iTmp);
+		if (p != NULL) {
+			va_start(args, pszFormat);
+			iTmp = vsnprintf(p+iLen, iSize, pszFormat, args);
+			va_end(args);
+
+			pNode->m_pBuf = p;
+			pNode->m_iSize = iSize;
+		}
+		else {
+			SetIdle(pNode);
+			return;
+		}
+	}
+
+	iLen += iTmp;
 
 	pNode->m_pBuf[iLen++]	= '\n';
 	pNode->m_pBuf[iLen++]	= '\0'; 
@@ -261,20 +281,47 @@ CLog::Write(const char* pszText, int iLength, int iLevel)
 		return;
 	}
 
-	CNode* pNode = GetIdle(iLength+32);
+	CNode* pNode = GetIdle();
 	if (pNode == NULL) {
 		return;
 	}
 
+	int iTmp = 0;
 	struct timeval tv = {0};
 	gettimeofday(&tv, NULL);
 	struct tm dt	= {0};
 	localtime_r(&(tv.tv_sec), &dt);
 
-	pNode->m_iLen = sprintf(pNode->m_pBuf, "%02d-%02d %02d:%02d:%02d.%03ld %s %s\n",
-		dt.tm_mon+1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec, tv.tv_usec/1000, LOG_TYPE[iLevel-1], pszText);
+	do {
+		iTmp = snprintf(pNode->m_pBuf, pNode->m_iSize, "%02d-%02d %02d:%02d:%02d.%03ld %s %s\n",
+			dt.tm_mon + 1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec, tv.tv_usec / 1000, LOG_TYPE[iLevel - 1], pszText);
 
-	SetWork(pNode);
+		if (iTmp == -1) {
+			break;
+		}
+
+		if (iTmp >= BUF_SIZ) {
+			int iSize = (iTmp / 1024 + 1) * 1024;
+			char* p = (char*)realloc(pNode->m_pBuf, iSize);
+			if (p != NULL) {
+				iTmp = snprintf(p, iSize, "%02d-%02d %02d:%02d:%02d.%03ld %s %s\n",
+					dt.tm_mon + 1, dt.tm_mday, dt.tm_hour, dt.tm_min, dt.tm_sec, tv.tv_usec / 1000, LOG_TYPE[iLevel - 1], pszText);
+				pNode->m_pBuf = p;
+				pNode->m_iSize = iSize;
+			}
+			else {
+				break;
+			}
+		}
+
+		pNode->m_iLen = iTmp;
+
+		SetWork(pNode);
+
+		return;
+	} while (false);
+
+	SetIdle(pNode);
 }
 
 void*
@@ -396,6 +443,7 @@ CLog::Cleanup()
 			NS_TIME::MSleep(100);
 			continue;
 		}
+		i = 0;
 
 		dir = opendir(m_szPath);
 		if (dir == NULL) {

@@ -4,6 +4,8 @@ message(STATUS "Include: " ${PROJECT_SOURCE_DIR}/Include)
 set(CMAKE_C_FLAGS "-g -Wall")
 set(CMAKE_CXX_FLAGS "-g -Wall")
 
+#aux_source_directory(. SRC_LIST)
+
 set(SRC_LST 
 	OSPath.cpp
 	OSTime.cpp
