@@ -9,12 +9,12 @@
 #include <CommUtil/Thread.h>
 
 
-class CSocketClient;
+//class CSocketClient;
 
 // typedef int(*CBConnect)(void* pHandler, CSocketClient*);
-typedef int(*CBConnect)(void* pHandler, void* pClient);
-typedef int(*CBReceive)(void* pHandler, void* pClient, const char* pszBuf, int iLen);
-typedef int(*CBClose)(void* pHandler, void* pClient, int iError);
+typedef void* (*CBConnect)(void* pHandler, void* pClient);
+typedef int (*CBReceive)(void* pParent, const char* pszBuf, int iLen);
+typedef int (*CBClose)(void* pParent, void* pClient, int iError);
 
 //////////////////////////////////////////////////////////////////////////
 class CSocketServer : public IThread
@@ -55,6 +55,9 @@ class CSocketServer : public IThread
 		int			Initialize(int iFd, const char* pszAddr, uint16_t iPort);
 
 		void		Set(int iFd)	{ m_iFd = iFd; }
+		void		Set(void* pParent)	{
+			m_pParent = pParent;
+		}
 
 		int			Add(int iEpoll);
 		void		Del();
@@ -78,6 +81,7 @@ class CSocketServer : public IThread
 		char*		m_pBuf;
 		int32_t		m_iSize;
 
+		void*		m_pParent;
 		CBReceive	m_cbReceive;
 		CBClose		m_cbClose;
 	};

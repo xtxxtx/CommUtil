@@ -125,6 +125,10 @@ CSocketServer::CClient::CClient()
 	m_iFd = -1;
 	m_iSize = BUF_SIZ;
 	m_pBuf = (char*)malloc(BUF_SIZ);
+
+	m_pParent = NULL;
+	m_cbReceive = NULL;
+	m_cbClose = NULL;
 }
 
 CSocketServer::CClient::~CClient()
@@ -167,7 +171,7 @@ TAG_BEGIN:
 
 	if (iResult > 0) {
 		if (m_cbReceive) {
-			if (m_cbReceive(pHander, this, m_pBuf, iResult) == -1) {
+			if (m_cbReceive(m_pParent, m_pBuf, iResult) == -1) {
 				return -1;
 			}
 		}
@@ -464,10 +468,14 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 		return -1;
 	}
 
-	if (m_cbConnect(m_pHandler, pClient) == -1) {
+	void* pParent = m_cbConnect(m_pHandler, pClient);
+	if (pParent == NULL) {
 		delete pClient;
 	}
 	else {
+		pClient->Set(iFd);
+		pClient->Set(pParent);
+
 		m_mtxClientNew.Lock();
 		m_lstClientNew.push_back(pClient);
 		m_mtxClientNew.Unlock();
@@ -479,6 +487,7 @@ CSocketServer::OnAccept(int iFd, const char* pszAddr, uint16_t iPort)
 #endif
 	return 0;
 }
+
 #include <algorithm>
 void
 CSocketServer::Close(void* pHandler, void* pClient)
@@ -496,3 +505,4 @@ CSocketServer::Close(void* pHandler, void* pClient)
 
 	((CClient*)pClient)->Close();
 }
+
